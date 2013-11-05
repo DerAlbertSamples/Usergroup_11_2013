@@ -1,4 +1,6 @@
-﻿using System.Threading.Tasks;
+﻿using System.Linq;
+using System.Security.Claims;
+using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
 using Microsoft.AspNet.Identity;
@@ -197,9 +199,11 @@ namespace UserGroup.Controllers
             {
                 return RedirectToAction("Login");
             }
+            ClaimsIdentity ext = await AuthenticationManager.GetExternalIdentityAsync(DefaultAuthenticationTypes.ExternalCookie);
 
             // Sign in the user with this external login provider if the user already has a login
             var user = await UserManager.FindAsync(loginInfo.Login);
+
             if (user != null)
             {
                 await SignInAsync(user, isPersistent: false);
@@ -255,6 +259,8 @@ namespace UserGroup.Controllers
 
             if (ModelState.IsValid)
             {
+                ClaimsIdentity ext = await AuthenticationManager.GetExternalIdentityAsync(DefaultAuthenticationTypes.ExternalCookie);
+
                 // Get the information about the user from the external login provider
                 var info = await AuthenticationManager.GetExternalLoginInfoAsync();
                 if (info == null)
@@ -262,9 +268,12 @@ namespace UserGroup.Controllers
                     return View("ExternalLoginFailure");
                 }
                 var user = new ApplicationUser() { UserName = model.UserName };
+            
                 var result = await UserManager.CreateAsync(user);
                 if (result.Succeeded)
                 {
+                   
+   
                     result = await UserManager.AddLoginAsync(user.Id, info.Login);
                     if (result.Succeeded)
                     {
@@ -331,7 +340,51 @@ namespace UserGroup.Controllers
         {
             AuthenticationManager.SignOut(DefaultAuthenticationTypes.ExternalCookie);
             var identity = await UserManager.CreateIdentityAsync(user, DefaultAuthenticationTypes.ApplicationCookie);
+            await SetExternalProperties(user, identity);
             AuthenticationManager.SignIn(new AuthenticationProperties() { IsPersistent = isPersistent }, identity);
+        }
+        private async Task SetExternalProperties(IdentityUser user, ClaimsIdentity identity)
+        {
+            // get external claims captured in Startup.ConfigureAuth
+            ClaimsIdentity ext = await AuthenticationManager.GetExternalIdentityAsync(DefaultAuthenticationTypes.ExternalCookie);
+            if (ext != null)
+            {
+                // add external claims to identity
+                foreach (var c in ext.Claims)
+                {
+                    if (!IgnoreClaim(c))
+                        if (!identity.HasClaim(c.Type, c.Value))
+                            identity.AddClaim(c);
+                }
+                if (user != null)
+                {
+                    var claims = await UserManager.GetClaimsAsync(user.Id);
+                    foreach (var claim in identity.Claims)
+                    {
+
+                        if (!IgnoreClaim(claim))
+                        {
+                            if (claims.Any(c => c.Type == claim.Type))
+                            {
+                                await UserManager.RemoveClaimAsync(user.Id, claims.First(c => c.Type == claim.Type));
+                                
+                            }
+                            await UserManager.AddClaimAsync(user.Id, claim);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static bool IgnoreClaim(Claim c)
+        {
+            var claimsToIgnore = new[]
+            {
+                ClaimTypes.NameIdentifier,
+                ClaimTypes.Name
+
+            };
+            return claimsToIgnore.Contains(c.Type);
         }
 
         private void AddErrors(IdentityResult result)

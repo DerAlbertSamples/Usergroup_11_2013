@@ -1,6 +1,12 @@
-﻿using Microsoft.AspNet.Identity;
+﻿using System;
+using System.Security.Claims;
+using System.Threading.Tasks;
+using Microsoft.AspNet.Identity;
 using Microsoft.Owin;
 using Microsoft.Owin.Security.Cookies;
+using Microsoft.Owin.Security.Facebook;
+using Microsoft.Owin.Security.Google;
+
 using Owin;
 
 namespace UserGroup
@@ -28,11 +34,40 @@ namespace UserGroup
             //   consumerKey: "",
             //   consumerSecret: "");
 
-            //app.UseFacebookAuthentication(
-            //   appId: "",
-            //   appSecret: "");
+            var facebookOptions = new FacebookAuthenticationOptions()
+            {
+                AppId = "317684662672",
+                AppSecret = "f2ced1b48242f10915def2e4d02753af",
+                Provider = new FacebookAuthenticationProvider()
+                {
+                    OnAuthenticated = OnAuthenticated 
+                }
+            };
+            app.UseFacebookAuthentication(facebookOptions);
 
-            //app.UseGoogleAuthentication();
+            var googleAuthenticationOptions = new GoogleAuthenticationOptions()
+            {
+                Provider = new GoogleAuthenticationProvider()
+                {
+                    OnAuthenticated = OnAuthenticated
+                }
+            };
+            app.UseGoogleAuthentication(googleAuthenticationOptions);
+        }
+
+        private Task OnAuthenticated(FacebookAuthenticatedContext facebookAuthenticatedContext)
+        {
+            var gender = facebookAuthenticatedContext.User.GetValue("gender");
+            var genderClaim = new Claim(ClaimTypes.Gender, gender.ToString(),"","Facebook");
+            facebookAuthenticatedContext.Identity.AddClaim(new Claim("urn:facebook:access_token", facebookAuthenticatedContext.AccessToken));
+            facebookAuthenticatedContext.Identity.AddClaim(genderClaim);
+            return Task.FromResult(0);
+        }
+
+        private Task OnAuthenticated(GoogleAuthenticatedContext googleAuthenticatedContext)
+        {
+            var identity = googleAuthenticatedContext.Identity;
+            return Task.FromResult<object>(null);
         }
     }
 }
