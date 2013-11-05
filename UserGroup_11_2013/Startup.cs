@@ -1,4 +1,5 @@
-﻿using Microsoft.Owin;
+﻿using System.Web.Http;
+using Microsoft.Owin;
 using Owin;
 using UserGroup;
 
@@ -10,6 +11,7 @@ namespace UserGroup
         public void Configuration(IAppBuilder app)
         {
             ConfigureAuth(app);
+            GlobalConfiguration.Configure(WebApiConfig.Register);
         }
     }
 }
