@@ -7,7 +7,7 @@ public class NorthwindContext : DbContext
 {
     // Use the constructor to target a specific named connection string
     public NorthwindContext()
-        : base("name=DefaultConnection")
+        : base("DefaultConnection")
     {
         // Disable proxy creation as this messes up the data service.
         this.Configuration.ProxyCreationEnabled = false;
