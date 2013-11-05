@@ -11,7 +11,6 @@ namespace UserGroup
         public void Configuration(IAppBuilder app)
         {
             ConfigureAuth(app);
-            GlobalConfiguration.Configure(WebApiConfig.Register);
         }
     }
 }
