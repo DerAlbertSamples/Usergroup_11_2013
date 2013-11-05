@@ -30,6 +30,7 @@ namespace UserGroup
             builder.EntitySet<Customer>("Customers");
             builder.EntitySet<Employee>("Employees");
             builder.EntitySet<OrderDetail>("OrderDetail");
+            builder.EntitySet<Product>("Product");
             config.Routes.MapODataRoute("odata", "odata", builder.GetEdmModel());
         }
     }
